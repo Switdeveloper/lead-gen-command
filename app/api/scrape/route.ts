@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { startApifyRun } from '@/lib/apify'
 
 export async function POST(req: NextRequest) {
-  if (!process.env.APIFY_API_TOKEN) {
-    return NextResponse.json({ error: 'APIFY_API_TOKEN not configured' }, { status: 500 })
+  const authHeader = req.headers.get('authorization')
+  const token = authHeader?.replace('Bearer ', '')
+
+  if (!token) {
+    return NextResponse.json({ error: 'Apify API token required. Add it in Settings.' }, { status: 401 })
   }
 
   try {
@@ -20,7 +23,7 @@ export async function POST(req: NextRequest) {
       query: keywords,
       maxResultsPerKeyword: maxResults,
       proxyConfiguration: { useApifyProxy: true },
-    })
+    }, token)
 
     return NextResponse.json(result)
   } catch (err) {

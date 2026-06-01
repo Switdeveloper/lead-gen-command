@@ -11,6 +11,11 @@ import { ApifyLead } from '@/lib/apify'
 const COST_PER_RESULT = 0.004
 const INITIAL_CREDIT = 5.0
 
+function getApifyToken(): string {
+  if (typeof window === 'undefined') return ''
+  return localStorage.getItem('apify_token') || ''
+}
+
 export default function Home() {
   const [leads, setLeads] = useState<ApifyLead[]>([])
   const [isScraping, setIsScraping] = useState(false)
@@ -24,6 +29,16 @@ export default function Home() {
   const [location, setLocation] = useState('')
   const [maxResults, setMaxResults] = useState(50)
   const [scrapeStartTime, setScrapeStartTime] = useState<number | null>(null)
+  const [tokenChecked, setTokenChecked] = useState(false)
+
+  // Check for Apify token on mount
+  useEffect(() => {
+    const token = getApifyToken()
+    if (!token) {
+      setError('⚠️ Apify API token not set. Go to Settings to add your token.')
+    }
+    setTokenChecked(true)
+  }, [])
 
   const estimatedCost = maxResults * COST_PER_RESULT
   const emailRate = leads.length > 0
@@ -31,6 +46,12 @@ export default function Home() {
     : 60
 
   const handleScrape = useCallback(async (kw: string, loc: string, max: number) => {
+    const token = getApifyToken()
+    if (!token) {
+      setError('⚠️ Apify API token not set. Please add it in Settings first.')
+      return
+    }
+
     setKeywords(kw)
     setLocation(loc)
     setMaxResults(max)
@@ -45,7 +66,10 @@ export default function Home() {
       // Start the scrape
       const res = await fetch('/api/scrape', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ keywords: kw, location: loc, maxResults: max }),
       })
 
@@ -59,7 +83,9 @@ export default function Home() {
       // Poll for results
       const pollInterval = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/results?runId=${runId}`)
+          const statusRes = await fetch(`/api/results?runId=${runId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
           const data = await statusRes.json()
 
           if (data.status === 'running') {
@@ -111,11 +137,21 @@ export default function Home() {
     ? Math.round((withEmails / leads.length) * 100)
     : 0
 
+  // Don't render main UI until we've checked for token
+  if (!tokenChecked) return null
+
   return (
     <div className="min-h-screen bg-radar-bg grid-overlay">
       <Header isScraping={isScraping} totalScraped={totalScraped} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+
+        {/* Token warning banner */}
+        {!getApifyToken() && (
+          <div className="border border-radar-amber/40 bg-radar-amber/10 rounded-lg px-4 py-3 font-mono text-sm text-radar-amber flex items-center justify-between">
+            <span>⚠️ Apify API token not configured — <a href="/settings" className="underline hover:text-radar-green transition-colors">add it in Settings</a></span>
+          </div>
+        )}
 
         {/* Search Panel */}
         <SearchPanel

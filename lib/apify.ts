@@ -1,4 +1,3 @@
-const APOFY_TOKEN = process.env.APIFY_API_TOKEN!
 const ACTOR_ID = 'scraper-mind/google-maps-email-scraper-unlimited'
 
 export interface ApifyRunInput {
@@ -35,12 +34,12 @@ export interface ApifyStatusResponse {
   error?: string
 }
 
-export async function startApifyRun(input: ApifyRunInput): Promise<ApifyRunResponse> {
+export async function startApifyRun(input: ApifyRunInput, token: string): Promise<ApifyRunResponse> {
   const res = await fetch(`https://api.apify.com/v2/acts/${ACTOR_ID}/runs`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${APOFY_TOKEN}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ ui: { runSyncWindowMs: 300000 }, input }),
   })
@@ -54,9 +53,9 @@ export async function startApifyRun(input: ApifyRunInput): Promise<ApifyRunRespo
   return { runId: data.data.id, status: 'started' }
 }
 
-export async function getRunStatus(runId: string): Promise<ApifyStatusResponse> {
+export async function getRunStatus(runId: string, token: string): Promise<ApifyStatusResponse> {
   const res = await fetch(`https://api.apify.com/v2/actor-runs/${runId}`, {
-    headers: { Authorization: `Bearer ${APOFY_TOKEN}` },
+    headers: { Authorization: `Bearer ${token}` },
   })
 
   if (!res.ok) {
@@ -84,10 +83,10 @@ export async function getRunStatus(runId: string): Promise<ApifyStatusResponse> 
   return { status: 'failed', error: data.data.errorMessage || 'Run failed' }
 }
 
-export async function getDatasetItems(datasetId: string): Promise<ApifyLead[]> {
+export async function getDatasetItems(datasetId: string, token: string): Promise<ApifyLead[]> {
   const res = await fetch(
     `https://api.apify.com/v2/datasets/${datasetId}/items?clean=true&format=json`,
-    { headers: { Authorization: `Bearer ${APOFY_TOKEN}` } }
+    { headers: { Authorization: `Bearer ${token}` } }
   )
 
   if (!res.ok) return []

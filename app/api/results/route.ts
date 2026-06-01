@@ -3,8 +3,11 @@ import { getRunStatus, getDatasetItems, calculateCost } from '@/lib/apify'
 import { deduplicateLeads, filterWithEmails } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
-  if (!process.env.APIFY_API_TOKEN) {
-    return NextResponse.json({ error: 'APIFY_API_TOKEN not configured' }, { status: 500 })
+  const authHeader = req.headers.get('authorization')
+  const token = authHeader?.replace('Bearer ', '')
+
+  if (!token) {
+    return NextResponse.json({ error: 'Apify API token required. Add it in Settings.' }, { status: 401 })
   }
 
   const { searchParams } = new URL(req.url)
@@ -15,7 +18,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const status = await getRunStatus(runId)
+    const status = await getRunStatus(runId, token)
 
     if (status.status === 'running') {
       return NextResponse.json({
@@ -32,7 +35,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (status.status === 'succeeded' && status.datasetId) {
-      const leads = await getDatasetItems(status.datasetId)
+      const leads = await getDatasetItems(status.datasetId, token)
       const allLeads = deduplicateLeads(leads)
       const withEmails = filterWithEmails(allLeads)
       const cost = calculateCost(allLeads.length)
