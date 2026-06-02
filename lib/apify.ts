@@ -66,7 +66,15 @@ export async function getRunStatus(runId: string, token: string): Promise<ApifyS
   const data = await res.json()
   const status = (data.data.status || '').toLowerCase()
 
-  if (status === 'running' || status === 'ready') {
+  if (status === 'running') {
+  
+  if (status === 'ready') {
+    return {
+      status: 'succeeded',
+      datasetId: data.data.defaultDatasetId,
+      totalCount: data.data.stats?.totalInputCountries || 0,
+    }
+  }
     return {
       status: 'running',
       currentCount: data.data.stats?.actorRunsCount || 0,

@@ -113,7 +113,7 @@ export default function Home() {
           setScrapeStatus('failed')
           setIsScraping(false)
         }
-      }, 3000)
+      }, 10000)
     } catch (e) {
       setError(String(e))
       setScrapeStatus('failed')
