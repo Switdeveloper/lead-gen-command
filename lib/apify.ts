@@ -1,4 +1,5 @@
-const ACTOR_ID = 'scraper-mind/google-maps-email-scraper-unlimited'
+const ACTOR_ID = 'scraper-mind~google-maps-email-scraper-unlimited'
+const ACTOR_ID_OLD = 'scraper-mind/google-maps-email-scraper-unlimited'
 
 export interface ApifyRunInput {
   emailOnlyResults: boolean
@@ -92,15 +93,25 @@ export async function getDatasetItems(datasetId: string, token: string): Promise
   if (!res.ok) return []
 
   const items = await res.json()
-  return items.map((item: Record<string, unknown>) => ({
-    title: String(item.title || ''),
-    phone: String(item.phone || ''),
-    email: String(item.email || ''),
-    address: String(item.address || ''),
-    url: String(item.url || ''),
-    isEmail: Boolean(item.isEmail),
-    searchQuery: String(item.searchQuery || ''),
-  }))
+  return items.map((item: Record<string, unknown>) => {
+    // Handle scraped_emails array - take first email if available
+    let email = ''
+    let isEmail = false
+    if (Array.isArray(item.scraped_emails) && item.scraped_emails.length > 0) {
+      email = String(item.scraped_emails[0].email || '')
+      isEmail = email.length > 0
+    }
+
+    return {
+      title: String(item.name || item.title || ''),
+      phone: String(item.phone || ''),
+      email,
+      address: String(item.full_address || item.address || ''),
+      url: String(item.website || item.url || ''),
+      isEmail,
+      searchQuery: String(item.searchQuery || ''),
+    }
+  })
 }
 
 export function calculateCost(resultCount: number): number {
