@@ -18,7 +18,6 @@ function getApifyToken(): string {
 
 export default function Home() {
   const [leads, setLeads] = useState<ApifyLead[]>([])
-  const [runId, setRunId] = useState<string | null>(null)
   const [isScraping, setIsScraping] = useState(false)
   const [scrapeStatus, setScrapeStatus] = useState<'idle' | 'running' | 'completed' | 'failed'>('idle')
   const [error, setError] = useState<string | undefined>()
@@ -79,8 +78,7 @@ export default function Home() {
         throw new Error(err.error || 'Failed to start scrape')
       }
 
-      const { runId: fetchedRunId } = await res.json()
-      setRunId(fetchedRunId)
+      const { runId } = await res.json()
 
       // Poll for results
       const pollInterval = setInterval(async () => {
@@ -115,53 +113,13 @@ export default function Home() {
           setScrapeStatus('failed')
           setIsScraping(false)
         }
-      }, 10000)
+      }, 3000)
     } catch (e) {
       setError(String(e))
       setScrapeStatus('failed')
       setIsScraping(false)
     }
-  }
-  const handleRefresh = useCallback(async () => {
-    if (!isScraping || !runId) return
-
-    const token = getApifyToken()
-    if (!token) {
-      setError('⚠️ Apify API token not set. Please add it in Settings first.')
-      return
-    }
-
-    try {
-      const statusRes = await fetch(`/api/results?runId=${runId}`, {
-        headers: { Authorization: \`Bearer \${token}\` },
-      })
-      const data = await statusRes.json()
-
-      if (data.status === 'running') {
-        setCurrentCount(data.currentCount || 0)
-        // Keep scraping status as running
-      } else if (data.status === 'completed') {
-        setLeads(data.results || [])
-        setScrapeStatus('completed')
-        setIsScraping(false)
-
-        const cost = data.stats?.cost || 0
-        setTotalCost((c) => c + cost)
-        setTotalScraped((t) => t + (data.results?.length || 0))
-        setRemainingCredit((r) => Math.max(0, r - cost))
-        setCurrentCount(data.results?.length || 0)
-      } else if (data.status === 'failed') {
-        setError(data.error || 'Scrape failed')
-        setScrapeStatus('failed')
-        setIsScraping(false)
-      }
-    } catch (e) {
-      setError(String(e))
-      setScrapeStatus('failed')
-      setIsScraping(false)
-    }
-  }, [isScraping, runId, getApifyToken, setError, setLeads, setScrapeStatus, setIsScraping, setCurrentCount, setTotalCost, setTotalScraped, setRemainingCredit])
-, [])
+  }, [])
 
   const handleClear = () => {
     setLeads([])
@@ -220,7 +178,6 @@ export default function Home() {
           status={scrapeStatus}
           error={error}
           currentCount={currentCount}
-          onRefresh={handleRefresh}
         />
 
         {/* Export Bar */}

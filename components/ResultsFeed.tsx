@@ -11,6 +11,7 @@ interface ResultsFeedProps {
   status: 'idle' | 'running' | 'completed' | 'failed'
   error?: string
   currentCount: number
+  onRefresh?: () => Promise<void>
 }
 
 export default function ResultsFeed({ leads, isLoading, status, error, currentCount }: ResultsFeedProps) {
@@ -48,6 +49,22 @@ export default function ResultsFeed({ leads, isLoading, status, error, currentCo
           <h3 className="font-orbitron text-xs font-bold tracking-widest uppercase text-radar-text">
             Live Feed
           </h3>
+          {status === 'running' && (
+            <button
+              onClick={async () => {
+                if (onRefresh) {
+                  try {
+                    await onRefresh()
+                  } catch (e) {
+                    console.error('Refresh failed:', e)
+                  }
+                }
+              }}
+              className="ml-2 flex h-9 w-9 items-center justify-center rounded border border-radar-border bg-radar-panel/20 px-2 py-1 text-xs font-mono transition-all hover:bg-radar-panel/30 hover:border-radar-green/50"
+            >
+              <Clock className="w-4 h-4 text-radar-amber" />
+            </button>
+          )}
           {status === 'running' && (
             <span className="text-xs font-mono text-radar-amber">
               {currentCount} results...
