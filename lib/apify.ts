@@ -64,7 +64,7 @@ export async function getRunStatus(runId: string, token: string): Promise<ApifyS
   }
 
   const data = await res.json()
-  const status = data.data.status
+  const status = (data.data.status || '').toLowerCase()
 
   if (status === 'running' || status === 'ready') {
     return {
@@ -81,7 +81,7 @@ export async function getRunStatus(runId: string, token: string): Promise<ApifyS
     }
   }
 
-  return { status: 'failed', error: data.data.errorMessage || 'Run failed' }
+  return { status: 'failed', error: data.data.errorMessage || `Run ${status}` }
 }
 
 export async function getDatasetItems(datasetId: string, token: string): Promise<ApifyLead[]> {
